@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdbool.h>
+#include <fstream>
 
 #include <cloog/cloog.h>
 
@@ -24,6 +25,8 @@ void pluto_mark_vector(struct clast_stmt *root, const PlutoProg *prog, CloogOpti
 #include "pluto_codegen_clang.hpp"
 #include "clast_clang.hpp"
 
+
+using namespace std;
 
 namespace pluto_codegen_clang{
 
@@ -66,7 +69,7 @@ static int get_first_point_loop(Stmt *stmt, const PlutoProg *prog)
  *  then the function takes care of the rest
  */
 int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
-        FILE *cloogfp, FILE *outfp)
+        FILE *cloogfp, ofstream& outfp)
 {
     CloogInput *input ;
     CloogOptions *cloogOptions ;
@@ -139,7 +142,7 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
 
     cloogOptions->name = "PLUTO-produced CLooG file";
 
-    fprintf(outfp, "/* Start of CLooG code */\n");
+    outfp << "/* Start of CLooG code */" << endl;
     /* Get the code from CLooG */
     IF_DEBUG(printf("[pluto] cloog_input_read\n"));
     input = cloog_input_read(cloogfp, cloogOptions) ;
@@ -151,10 +154,12 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
     if (options->parallel) {
         pluto_mark_parallel(root, prog, cloogOptions);
     }
+
     clast_clang::clast_pprint(outfp, root, 0, cloogOptions);
     cloog_clast_free(root);
 
-    fprintf(outfp, "/* End of CLooG code */\n");
+    //fprintf(outfp, "/* End of CLooG code */\n");
+    outfp << "/* End of CLooG code */" << endl;
 
     cloog_options_free(cloogOptions);
     cloog_state_free(state);
@@ -167,16 +172,21 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
 
 /* Generate code for a single multicore; the ploog script will insert openmp
  * pragmas later */
-int pluto_multicore_codegen(FILE *cloogfp, FILE *outfp, const PlutoProg *prog)
+int pluto_multicore_codegen(FILE *cloogfp, ofstream& outfp, const PlutoProg *prog)
 { 
+#if 0
     if (options->parallel)  {
         fprintf(outfp, "#include <omp.h>\n\n");
     }   
     generate_declarations(prog, outfp);
+#endif
 
     if (options->multipar) {
-        fprintf(outfp, "\tomp_set_nested(1);\n");
-        fprintf(outfp, "\tomp_set_num_threads(2);\n");
+      assert( 0 && "not tested" );
+      //fprintf(outfp, "\tomp_set_nested(1);\n");
+      outfp << "\tomp_set_nested(1);" << endl;
+      //fprintf(outfp, "\tomp_set_num_threads(2);\n");
+      outfp << "\tomp_set_num_threads(2);" << endl;
     }   
 
     pluto_gen_cloog_code_clang(prog, -1, -1, cloogfp, outfp);
