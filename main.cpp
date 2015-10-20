@@ -5,7 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdbool.h>
-#include <fstream>
+#include <sstream>
 
 #include <cloog/cloog.h>
 
@@ -69,7 +69,7 @@ static int get_first_point_loop(Stmt *stmt, const PlutoProg *prog)
  *  then the function takes care of the rest
  */
 int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
-        FILE *cloogfp, ofstream& outfp)
+        FILE *cloogfp, stringstream& outfp)
 {
     CloogInput *input ;
     CloogOptions *cloogOptions ;
@@ -167,16 +167,97 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
     return 0;
 }
 
+static void gen_stmt_macro(const Stmt *stmt, stringstream& outfp)
+{
+    int j;
+
+    for (j=0; j<stmt->dim; j++) { 
+        if (stmt->iterators[j] == NULL) {
+            printf("Iterator name not set for S%d; required \
+                    for generating declarations\n", stmt->id+1);
+            assert(0);
+        }
+    }
+    outfp << "#define S"<< stmt->id+1;
+    outfp << "(";
+    for (j=0; j<stmt->dim; j++)  { 
+        if (j!=0) {
+	  outfp << ",";
+	}
+        outfp << stmt->iterators[j];
+    }
+    outfp << ")\t";
+    
+#if 0
+    /* Generate pragmas for Bee/Cl@k */
+    if (options->bee)   {
+        outfp << " __bee_schedule";
+        for (j=0; j<stmt->trans->nrows; j++)    {
+            outfp << "[";
+            //pluto_affine_function_print(outfp, stmt->trans->val[j],
+                    stmt->dim, stmt->iterators);
+            fprintf(outfp, "]");
+        }
+        fprintf(outfp, " _NL_DELIMIT_ ");
+    }
+#endif
+    outfp << stmt->text << endl;
+}
+
+
+
+/* Generate variable declarations and macros */
+int generate_declarations(const PlutoProg *prog, stringstream& outfp)
+{
+    int i;
+
+    Stmt **stmts = prog->stmts;
+    int nstmts = prog->nstmts;
+
+    /* Generate statement macros */
+    for (i=0; i<nstmts; i++)    {   
+        gen_stmt_macro(stmts[i], outfp);
+    }   
+    outfp << endl;
+
+#if 0
+    /* Scattering iterators. */
+    if (prog->num_hyperplanes >= 1)    {   
+        outfp << "\t\tint ";
+        for (i=0; i<prog->num_hyperplanes; i++)  {
+            if (i!=0) {
+	      outfp << ", ";
+	    }
+            outfp << "t" << i+1;
+            if (prog->hProps[i].unroll)   {   
+                outfp << ", t" << i+1 << "t, newlb_t" << i+1 << ", newub_t" << i+1 ;
+            }
+        }
+        outfp << ";\n\n";
+    }   
+
+    if (options->parallel)   {   
+        outfp << "\tint lb, ub, lbp, ubp, lb2, ub2;\n";
+    }   
+    /* For vectorizable loop bound replacement */
+    outfp << "\tregister int lbv, ubv;\n\n";
+#endif
+
+    return 0;
+}
+
 
 
 
 /* Generate code for a single multicore; the ploog script will insert openmp
  * pragmas later */
-int pluto_multicore_codegen(FILE *cloogfp, ofstream& outfp, const PlutoProg *prog)
+int pluto_multicore_codegen(FILE *cloogfp, stringstream& outfp, const PlutoProg *prog)
 { 
-#if 0
+  // TODO left on for compatibility reasons 
+#if 1
     if (options->parallel)  {
-        fprintf(outfp, "#include <omp.h>\n\n");
+        //fprintf(outfp, "#include <omp.h>\n\n");
+	outfp << "#include <omp.h>" << endl << endl;
     }   
     generate_declarations(prog, outfp);
 #endif
