@@ -14,10 +14,13 @@ SET( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" )
 #SET( EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin )
 #SET( LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib )
 
+add_subdirectory( clast-clang )
+include_directories( clast-clang )
+
 SET( CMAKE_EXPORT_COMPILE_COMMANDS on )
 
 #INCLUDE_DIRECTORIES( )
 ADD_LIBRARY( pluto_codegen_clang SHARED main.cpp)
 
-TARGET_LINK_LIBRARIES( pluto_codegen_clang pluto clast-clang )
+TARGET_LINK_LIBRARIES( pluto_codegen_clang clast-clang pluto )
 

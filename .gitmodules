@@ -1,0 +1,3 @@
+[submodule "clast-clang"]
+	path = clast-clang
+	url = https://github.com/realincubus/clast-clang.git
