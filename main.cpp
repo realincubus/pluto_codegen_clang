@@ -69,7 +69,7 @@ static int get_first_point_loop(Stmt *stmt, const PlutoProg *prog)
  *  then the function takes care of the rest
  */
 int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
-        FILE *cloogfp, stringstream& outfp)
+        FILE *cloogfp, stringstream& outfp, osl_scop_p scop )
 {
     CloogInput *input ;
     CloogOptions *cloogOptions ;
@@ -145,7 +145,7 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
     outfp << "/* Start of CLooG code */" << endl;
     /* Get the code from CLooG */
     IF_DEBUG(printf("[pluto] cloog_input_read\n"));
-    input = cloog_input_read(cloogfp, cloogOptions) ;
+    input = cloog_input_from_osl_scop(cloogOptions->state,scop);
     IF_DEBUG(printf("[pluto] cloog_clast_create\n"));
     root = cloog_clast_create_from_input(input, cloogOptions);
     if (options->prevector) {
@@ -249,9 +249,10 @@ int generate_declarations(const PlutoProg *prog, stringstream& outfp)
 
 
 
+// TODO make it accep a scop instead of a PlutoProgram
 /* Generate code for a single multicore; the ploog script will insert openmp
  * pragmas later */
-int pluto_multicore_codegen(FILE *cloogfp, stringstream& outfp, const PlutoProg *prog)
+int pluto_multicore_codegen(FILE *cloogfp, stringstream& outfp, const PlutoProg *prog, osl_scop_p scop)
 { 
   // TODO left on for compatibility reasons 
 #if 1
@@ -270,7 +271,7 @@ int pluto_multicore_codegen(FILE *cloogfp, stringstream& outfp, const PlutoProg 
       outfp << "\tomp_set_num_threads(2);" << endl;
     }   
 
-    pluto_gen_cloog_code_clang(prog, -1, -1, cloogfp, outfp);
+    pluto_gen_cloog_code_clang(prog, -1, -1, cloogfp, outfp, scop );
 
     return 0;
 }
