@@ -69,7 +69,7 @@ static int get_first_point_loop(Stmt *stmt, const PlutoProg *prog)
  *  then the function takes care of the rest
  */
 int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
-        FILE *cloogfp, stringstream& outfp, osl_scop_p scop )
+        stringstream& outfp, osl_scop_p scop )
 {
     CloogInput *input ;
     CloogOptions *cloogOptions ;
@@ -187,20 +187,7 @@ static void gen_stmt_macro(const Stmt *stmt, stringstream& outfp)
         outfp << stmt->iterators[j];
     }
     outfp << ")\t";
-    
-#if 0
-    /* Generate pragmas for Bee/Cl@k */
-    if (options->bee)   {
-        outfp << " __bee_schedule";
-        for (j=0; j<stmt->trans->nrows; j++)    {
-            outfp << "[";
-            //pluto_affine_function_print(outfp, stmt->trans->val[j],
-                    stmt->dim, stmt->iterators);
-            fprintf(outfp, "]");
-        }
-        fprintf(outfp, " _NL_DELIMIT_ ");
-    }
-#endif
+
     outfp << stmt->text << endl;
 }
 
@@ -252,7 +239,7 @@ int generate_declarations(const PlutoProg *prog, stringstream& outfp)
 // TODO make it accep a scop instead of a PlutoProgram
 /* Generate code for a single multicore; the ploog script will insert openmp
  * pragmas later */
-int pluto_multicore_codegen(FILE *cloogfp, stringstream& outfp, const PlutoProg *prog, osl_scop_p scop)
+int pluto_multicore_codegen( stringstream& outfp, const PlutoProg *prog, osl_scop_p scop)
 { 
   // TODO left on for compatibility reasons 
 #if 1
@@ -271,7 +258,7 @@ int pluto_multicore_codegen(FILE *cloogfp, stringstream& outfp, const PlutoProg 
       outfp << "\tomp_set_num_threads(2);" << endl;
     }   
 
-    pluto_gen_cloog_code_clang(prog, -1, -1, cloogfp, outfp, scop );
+    pluto_gen_cloog_code_clang(prog, -1, -1, outfp, scop );
 
     return 0;
 }
