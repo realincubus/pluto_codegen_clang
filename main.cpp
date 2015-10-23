@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <sstream>
+#include <map>
 
 #include <cloog/cloog.h>
 
@@ -71,7 +72,7 @@ static int get_first_point_loop(Stmt *stmt, const PlutoProg *prog)
  *  then the function takes care of the rest
  */
 int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
-        stringstream& outfp, osl_scop_p scop )
+        stringstream& outfp, osl_scop_p scop, vector<std::string>& statement_texts )
 {
     CloogInput *input ;
     CloogOptions *cloogOptions ;
@@ -144,7 +145,7 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
 
     cloogOptions->name = "PLUTO-produced CLooG file";
 
-    outfp << "/* Start of CLooG code */" << endl;
+    //outfp << "/* Start of CLooG code */" << endl;
     /* Get the code from CLooG */
     IF_DEBUG(printf("[pluto] cloog_input_read\n"));
     input = cloog_input_from_osl_scop(cloogOptions->state,scop);
@@ -157,11 +158,11 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
         pluto_mark_parallel(root, prog, cloogOptions);
     }
 
-    clast_clang::clast_pprint(outfp, root, 0, cloogOptions);
+    clast_clang::clast_pprint(outfp, root, 0, cloogOptions, statement_texts);
     cloog_clast_free(root);
 
     //fprintf(outfp, "/* End of CLooG code */\n");
-    outfp << "/* End of CLooG code */" << endl;
+    //outfp << "/* End of CLooG code */" << endl;
 
     cloog_options_free(cloogOptions);
     cloog_state_free(state);
@@ -198,6 +199,8 @@ static void gen_stmt_macro(const Stmt *stmt, stringstream& outfp)
 /* Generate variable declarations and macros */
 int generate_declarations(const PlutoProg *prog, stringstream& outfp)
 {
+
+
     int i;
 
     Stmt **stmts = prog->stmts;
@@ -236,15 +239,37 @@ int generate_declarations(const PlutoProg *prog, stringstream& outfp)
 }
 
 
+// since this approach does not work i will do it in a very bad way 
+// but this might be faster then the rest
+#if 0
+auto createPlutoToOSLStatementMap(const PlutoProg* prog, osl_scop_p scop ) {
+  map< Stmt*, osl_statement_p > ret;
 
+  auto pluto_statements = prog->stmts;
+  auto nstmts = prog->nstmts;
+
+  // walk through this ancient list construct
+  osl_statement_p scop_stmt = scop->statement;
+  for ( int i = 0 ; i < nstmts; i++ ){
+    ret[pluto_statements[i]] = scop_stmt;        
+    std::cout << "pluto " << pluto_statements[i] << " osl " << scop_stmt << std::endl;
+    scop_stmt = scop_stmt->next;
+  }    
+  return ret;
+}
+#endif
 
 // TODO make it accep a scop instead of a PlutoProgram
 /* Generate code for a single multicore; the ploog script will insert openmp
  * pragmas later */
-int pluto_multicore_codegen( stringstream& outfp, const PlutoProg *prog, osl_scop_p scop)
+int pluto_multicore_codegen( stringstream& outfp, const PlutoProg *prog, osl_scop_p scop, vector<std::string>& statement_texts )
 { 
+  
+    // TODO temporary solution to map from pluto to osl statements and by this to my parsed results
+    // auto& pluto_to_scop = createPlutoToOSLStatementMap( prog, scop );
+
   // TODO left on for compatibility reasons 
-#if 1
+#if 0
     if (options->parallel)  {
         //fprintf(outfp, "#include <omp.h>\n\n");
 	outfp << "#include <omp.h>" << endl << endl;
@@ -260,7 +285,7 @@ int pluto_multicore_codegen( stringstream& outfp, const PlutoProg *prog, osl_sco
       outfp << "\tomp_set_num_threads(2);" << endl;
     }   
 
-    pluto_gen_cloog_code_clang(prog, -1, -1, outfp, scop );
+    pluto_gen_cloog_code_clang(prog, -1, -1, outfp, scop, statement_texts );
 
     return 0;
 }
