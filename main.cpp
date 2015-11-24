@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <sstream>
 #include <map>
+#include <iostream>
 
 #include <cloog/cloog.h>
 
@@ -147,16 +148,18 @@ int pluto_gen_cloog_code_clang(const PlutoProg *prog, int cloogf, int cloogl,
 
     //outfp << "/* Start of CLooG code */" << endl;
     /* Get the code from CLooG */
-    IF_DEBUG(printf("[pluto] cloog_input_read\n"));
+    printf("[pluto] cloog_input_read\n");
     input = cloog_input_from_osl_scop(cloogOptions->state,scop);
-    IF_DEBUG(printf("[pluto] cloog_clast_create\n"));
+    printf("[pluto] cloog_clast_create\n");
     root = cloog_clast_create_from_input(input, cloogOptions);
+#if 1
     if (options->prevector) {
         pluto_mark_vector(root, prog, cloogOptions);
     }
     if (options->parallel) {
         pluto_mark_parallel(root, prog, cloogOptions);
     }
+#endif
 
     clast_clang::clast_pprint(outfp, root, 0, cloogOptions, statement_texts);
     cloog_clast_free(root);
@@ -195,50 +198,6 @@ static void gen_stmt_macro(const Stmt *stmt, stringstream& outfp)
 }
 
 
-
-/* Generate variable declarations and macros */
-int generate_declarations(const PlutoProg *prog, stringstream& outfp)
-{
-
-
-    int i;
-
-    Stmt **stmts = prog->stmts;
-    int nstmts = prog->nstmts;
-
-    /* Generate statement macros */
-    for (i=0; i<nstmts; i++)    {   
-        gen_stmt_macro(stmts[i], outfp);
-    }   
-    outfp << endl;
-
-#if 0
-    /* Scattering iterators. */
-    if (prog->num_hyperplanes >= 1)    {   
-        outfp << "\t\tint ";
-        for (i=0; i<prog->num_hyperplanes; i++)  {
-            if (i!=0) {
-	      outfp << ", ";
-	    }
-            outfp << "t" << i+1;
-            if (prog->hProps[i].unroll)   {   
-                outfp << ", t" << i+1 << "t, newlb_t" << i+1 << ", newub_t" << i+1 ;
-            }
-        }
-        outfp << ";\n\n";
-    }   
-
-    if (options->parallel)   {   
-        outfp << "\tint lb, ub, lbp, ubp, lb2, ub2;\n";
-    }   
-    /* For vectorizable loop bound replacement */
-    outfp << "\tregister int lbv, ubv;\n\n";
-#endif
-
-    return 0;
-}
-
-
 // since this approach does not work i will do it in a very bad way 
 // but this might be faster then the rest
 #if 0
@@ -264,18 +223,6 @@ auto createPlutoToOSLStatementMap(const PlutoProg* prog, osl_scop_p scop ) {
  * pragmas later */
 int pluto_multicore_codegen( stringstream& outfp, const PlutoProg *prog, osl_scop_p scop, vector<std::string>& statement_texts )
 { 
-  
-    // TODO temporary solution to map from pluto to osl statements and by this to my parsed results
-    // auto& pluto_to_scop = createPlutoToOSLStatementMap( prog, scop );
-
-  // TODO left on for compatibility reasons 
-#if 0
-    if (options->parallel)  {
-        //fprintf(outfp, "#include <omp.h>\n\n");
-	outfp << "#include <omp.h>" << endl << endl;
-    }   
-    generate_declarations(prog, outfp);
-#endif
 
     if (options->multipar) {
       assert( 0 && "not tested" );
@@ -284,6 +231,8 @@ int pluto_multicore_codegen( stringstream& outfp, const PlutoProg *prog, osl_sco
       //fprintf(outfp, "\tomp_set_num_threads(2);\n");
       outfp << "\tomp_set_num_threads(2);" << endl;
     }   
+
+    std::cout << "pluto_codegen_clang ndeps " <<  prog->ndeps << std::endl;
 
     pluto_gen_cloog_code_clang(prog, -1, -1, outfp, scop, statement_texts );
 

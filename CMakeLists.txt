@@ -16,11 +16,15 @@ SET( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" )
 
 add_subdirectory( clast-clang )
 include_directories( clast-clang )
+include_directories( ../pluto_src/src )
+include_directories( ../pluto_src/piplib/include )
+
+include_directories( ../clan/osl/include )
 
 SET( CMAKE_EXPORT_COMPILE_COMMANDS on )
 
 #INCLUDE_DIRECTORIES( )
 ADD_LIBRARY( pluto_codegen_clang SHARED main.cpp)
 
-TARGET_LINK_LIBRARIES( pluto_codegen_clang clast-clang pluto )
+TARGET_LINK_LIBRARIES( pluto_codegen_clang plutocore )
 
